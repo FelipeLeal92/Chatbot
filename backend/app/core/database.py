@@ -7,7 +7,15 @@ from .config import settings
 # and the robust connection pooling of modern DB drivers.
 # A manual wait script can be added to the Docker entrypoint if needed.
 
-async_engine = create_async_engine(settings.DATABASE_URL, echo=True)
+# Garante que a URL do banco use o driver assíncrono (aiomysql)
+# O Render/Provedores geralmente fornecem 'mysql://' que padroniza para sync (pymysql)
+db_url = settings.DATABASE_URL
+if db_url.startswith("mysql://"):
+    db_url = db_url.replace("mysql://", "mysql+aiomysql://", 1)
+elif db_url.startswith("mysql+pymysql://"):
+    db_url = db_url.replace("mysql+pymysql://", "mysql+aiomysql://", 1)
+
+async_engine = create_async_engine(db_url, echo=True)
 AsyncSessionLocal = sessionmaker(
     bind=async_engine,
     class_=AsyncSession,
