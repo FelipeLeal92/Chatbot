@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # 1. Banco de Dados
+  db:
+    image: mysql:8.0
+    container_name: lealverse_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: lealverse_lead_engine
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
+  # 2. Redis
+  redis:
+    image: redis:7-alpine
+    container_name: lealverse_redis
+    restart: always
+    ports:
+      - "6379:6379"
+
+  # 3. Backend (FastAPI)
+  backend:
+    build: ./backend
+    container_name: lealverse_backend
+    restart: always
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      # Sobrescreve a URL do banco para usar o nome do container 'db'
+      DATABASE_URL: mysql+aiomysql://user:password@db/lealverse_lead_engine
+      REDIS_URL: redis://redis:6379/0
+
+  # 4. Frontend (React + Nginx)
+  frontend:
+    build: ./frontend
+    container_name: lealverse_widget
+    restart: always
+    ports:
+      - "3000:80" # O Widget estará acessível em localhost:3000
+    depends_on:
+      - backend
+
+volumes:
+  db_data:
