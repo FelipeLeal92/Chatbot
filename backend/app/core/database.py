@@ -1,4 +1,5 @@
 from typing import AsyncGenerator
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 
@@ -9,14 +10,12 @@ from .config import settings
 # A manual wait script can be added to the Docker entrypoint if needed.
 
 # Garante que a URL do banco use o driver assíncrono (aiomysql)
-# O Render/Provedores geralmente fornecem 'mysql://' que padroniza para sync (pymysql)
-db_url = settings.DATABASE_URL
-if db_url.startswith("mysql://"):
-    db_url = db_url.replace("mysql://", "mysql+aiomysql://", 1)
-elif db_url.startswith("mysql+pymysql://"):
-    db_url = db_url.replace("mysql+pymysql://", "mysql+aiomysql://", 1)
+# usando o make_url do SQLAlchemy para uma abordagem mais robusta
+db_url_obj = make_url(settings.DATABASE_URL)
+if db_url_obj.drivername.startswith("mysql"):
+    db_url_obj = db_url_obj.set(drivername="mysql+aiomysql")
 
-async_engine = create_async_engine(db_url, echo=True)
+async_engine = create_async_engine(db_url_obj, echo=True)
 AsyncSessionLocal = sessionmaker(
     bind=async_engine,
     class_=AsyncSession,
