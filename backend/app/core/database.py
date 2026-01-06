@@ -12,6 +12,12 @@ from .config import settings
 # Garante que a URL do banco use o driver assíncrono (aiomysql)
 # usando o make_url do SQLAlchemy para uma abordagem mais robusta
 db_url_obj = make_url(settings.DATABASE_URL)
+
+# Workaround for malformed DB URL on Render where user and host are combined
+if db_url_obj.host and '@' in db_url_obj.host:
+    user, host = db_url_obj.host.split('@', 1)
+    db_url_obj = db_url_obj.set(host=host, username=user)
+
 if db_url_obj.drivername.startswith("mysql"):
     db_url_obj = db_url_obj.set(drivername="mysql+aiomysql")
 
